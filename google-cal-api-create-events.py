@@ -18,6 +18,7 @@ def generate_event(participants, schedule):
     a_email = next((item['email'] for item in participants if item["name"].lower() == player_a.lower()), None)
     player_b = schedule['player_b']
     b_email = next((item['email'] for item in participants if item["name"].lower() == player_b.lower()), None)
+    location = schedule['location']
 
     if not a_email:
         raise KeyError("%s has not been registered!" % player_a)
@@ -25,13 +26,13 @@ def generate_event(participants, schedule):
         raise KeyError("%s has not been registered!" % player_b)
 
     summary = player_a + " vs " + player_b
-    location = "Court 6"
+    description = summary + " on " + location
     time_zone = "America/Edmonton"
 
     event = {
       'summary': summary,
       'location': location,
-      'description': summary,
+      'description': description,
       'start': {
         'dateTime': schedule['date'] + "T" + schedule['start_time'],
         'timeZone': time_zone,
@@ -95,17 +96,18 @@ def parse_csv(f):
     df = pd.read_csv(f)
     return df.to_dict(orient='records')
 
+
 def get_id(file_name):
-   with open(f) as calendar:
+    with open(file_name) as calendar:
         id = calendar.readline()
     return id
 
 
 def main():
 
-    id = get_id('calendar.txt')
+    id = get_id('tier-2-calendar.txt')
     participant_file = "participants.csv"
-    schedule_file = "winter-2020-tier-1-schedule.csv"
+    schedule_file = "winter-2020-tier-2-schedule.csv"
 
     try:
         participants = parse_csv(participant_file)
@@ -114,7 +116,10 @@ def main():
         service = init_connection()
         for event in events:
             print(event)
-            resp = service.events().insert(calendarId=id, body=event).execute()
+            try:
+                resp = service.events().insert(calendarId=id, body=event).execute()
+            except Exception as api_error:
+                print(api_error)
 
             print('Event created: %s' % (resp.get('htmlLink')))
     except Exception as e:
